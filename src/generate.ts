@@ -2,8 +2,11 @@ import { setImmediate } from "timers";
 import { faker } from "@faker-js/faker";
 import { Sensor, SensorValue } from "@prisma/client";
 
-const N_BATCH_SIZE = 1000;
-
+const N_SENSOR_PER_SOURCE = 150;
+const N_SNAPSHOT_PER_BATCH = 100;
+const N_SNAPSHOT_PER_SOURCE = 500;
+export const MIN_DATE = new Date(2017, 1, 1);
+export const MAX_DATE = new Date(2020, 12, 31);
 export interface BatchStore<T> {
   begin(): void;
   next(t: T): void;
@@ -14,10 +17,9 @@ function sensorTag(ordinal: number) {
   return `sensor${ordinal}`;
 }
 
-function randomDate() {
-  const startDate = new Date(2017, 1, 1);
-  const endDate = new Date(2020, 12, 31);
-  return faker.date.between(startDate, endDate);
+export function randomDate(from = MIN_DATE) {
+  if (from >= MAX_DATE) throw new Error(`$from must be stricly before ${MAX_DATE} `);
+  return faker.date.between(from, MAX_DATE);
 }
 
 function randomMean() {
@@ -28,36 +30,67 @@ function randomStd() {
   return Math.random() * 2;
 }
 
-function randomSensorValue(sensorTag: string, date: Date): SensorValue {
+function randomSource() {
+  return `source${new Date().toISOString()}`;
+}
+
+function randomSensorValue(source: string, sensorTag: string, date: Date): SensorValue {
   return {
-    sensorTag,
+    source,
     date,
+    sensorTag,
     mean: randomMean(),
     std: randomStd(),
   };
 }
 
+export async function generateSourceWithSensors(store: BatchStore<Sensor>) {
+  const source = randomSource();
+  const sensors: Sensor[] = await generateSensors(store, source, N_SENSOR_PER_SOURCE);
+  console.log(`Source ${source} generated with ${sensors.length} Sensors.`);
+  return { source, sensors };
+}
+
 export async function generateSensorValues(
+  sensorStore: BatchStore<Sensor>,
   store: BatchStore<SensorValue>,
-  sensors: Sensor[],
   snapshotCount: number,
-  snapshotRemaining: number = snapshotCount
+  snapshotRemaining: number = snapshotCount,
+  source?: string,
+  sensors?: Sensor[]
 ) {
   if (snapshotRemaining == 0) return;
+  if (snapshotCount === snapshotRemaining) {
+    console.log(`Generating ${snapshotCount} Snapshots x ${N_SENSOR_PER_SOURCE} Sensors.`);
+  }
 
   let n = snapshotRemaining;
 
-  if (n * sensors.length > N_BATCH_SIZE) {
-    n = Math.max(1, Math.floor(N_BATCH_SIZE / sensors.length));
-    if (snapshotRemaining == snapshotCount)
-      console.log(`Starting batchs of ${n} Snapshots with ${sensors.length} Sensor.`);
+  if (!source || !sensors) {
+    ({ source, sensors } = await generateSourceWithSensors(sensorStore));
+  }
+
+  if (n > N_SNAPSHOT_PER_BATCH) {
+    n = N_SNAPSHOT_PER_BATCH;
+    if (snapshotRemaining === snapshotCount) {
+      console.log(
+        `Starting batches of ${n * sensors.length} SensorValues (${n} Snapshots x ${
+          sensors.length
+        } Sensors).`
+      );
+    }
   }
 
   store.begin();
   for (let i = 0; i < n; i++) {
+    if ((snapshotRemaining - i) % N_SNAPSHOT_PER_SOURCE === 0) {
+      ({ source, sensors } = await generateSourceWithSensors(sensorStore));
+    }
+
     const date = randomDate();
     sensors.forEach(s => {
-      store.next(randomSensorValue(s.tag, date));
+      if (!source) throw new Error("Source cannot be undefined.");
+      store.next(randomSensorValue(source, s.tag, date));
     });
   }
   await store.commit();
@@ -65,26 +98,40 @@ export async function generateSensorValues(
   snapshotRemaining = snapshotRemaining - n;
   const snapshotGenerated = snapshotCount - snapshotRemaining;
   console.log(
-    `${snapshotGenerated}/${snapshotCount} Snapshots and ${
+    `${snapshotGenerated}/${snapshotCount} Snapshots generated (${
       snapshotGenerated * sensors.length
-    } SensorValues generated.`
+    } SensorValues).`
   );
-  if (snapshotRemaining > 0) {
-    setImmediate(() => {
-      generateSensorValues(store, sensors, snapshotCount, snapshotRemaining);
-    });
-  }
+  return new Promise<void>((resolve, reject) => {
+    if (snapshotRemaining > 0) {
+      setImmediate(() => {
+        generateSensorValues(
+          sensorStore,
+          store,
+          snapshotCount,
+          snapshotRemaining,
+          source,
+          sensors
+        ).then(resolve);
+      });
+    } else {
+      resolve();
+    }
+  });
 }
 
-export async function generateSensors(store: BatchStore<Sensor>, count: number): Promise<Sensor[]> {
+export async function generateSensors(
+  store: BatchStore<Sensor>,
+  source: string,
+  count: number
+): Promise<Sensor[]> {
   const sensors: Sensor[] = [];
   store.begin();
   for (let i = 1; i <= count; i++) {
-    const sensor = { tag: sensorTag(i) };
+    const sensor = { source, tag: sensorTag(i) };
     store.next(sensor);
     sensors.push(sensor);
   }
   await store.commit();
-  console.log(`${count}/${count} Sensors generated.`);
   return sensors;
 }

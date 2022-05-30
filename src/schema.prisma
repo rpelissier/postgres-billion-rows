@@ -10,23 +10,25 @@ generator client {
 }
 
 model Sensor {
-  tag String @id @default(uuid())
+  source String
+  tag    String
 
   sensorValues SensorValue[]
 
+  @@id([source, tag])
   @@map("sensor")
 }
 
 model SensorValue {
-  sensor    Sensor @relation(fields: [sensorTag], references: [tag])
+  source    String
+  date      DateTime
+  sensor    Sensor   @relation(fields: [source, sensorTag], references: [source, tag])
   sensorTag String
-
-  date DateTime
 
   mean Float?
   std  Float?
 
-  @@id([date, sensorTag])
-  @@index([sensorTag, date])
+  @@id([source, date, sensorTag])
+  @@index([source, sensorTag, date])
   @@map("sensor_value")
 }

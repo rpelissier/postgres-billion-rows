@@ -24,8 +24,10 @@ abstract class DBStore<T> implements BatchStore<T> {
 }
 
 export async function resetDB() {
-  await prisma.sensorValue.deleteMany({});
-  await prisma.sensor.deleteMany({});
+  console.log("Reseting the DB.");
+  await prisma.$executeRaw`delete from sensor_value;`;
+  await prisma.$executeRaw`delete from sensor;`;
+  console.log("Reseting the DB done.");
 }
 
 export class SensorValueDBStore extends DBStore<SensorValue> {
