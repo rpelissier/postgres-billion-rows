@@ -1,8 +1,10 @@
 <html>
 
 <body>
-    <div id="nSnapshotSerie" style="width:100%; height:400px;"></div>
-    <div id="newSvSerie" style="width:100%; height:400px;"></div>
+    <h1>Billion rows benchmark with Postgres</h1>
+    <div id="summary">
+        <h2>Settings</h2>
+    </div>
     <div id="insertChronoSerie" style="width:100%; height:400px;"></div>
     <div id="searchChronoSerie" style="width:100%; height:400px;"></div>
     <script src="https://code.highcharts.com/highcharts.js"></script>
@@ -48,12 +50,15 @@
             };
         }
         document.addEventListener('DOMContentLoaded', function () {
-            Highcharts.chart('nSnapshotSerie', createOptions("${nSnapshotSerie}"));
-            Highcharts.chart('newSvSerie', createOptions("${newSvSerie}"));
             Highcharts.chart('insertChronoSerie', createOptions("${insertChronoSerie}"));
             Highcharts.chart('searchChronoSerie', createOptions("${searchChronoSerie}"));
-
         });
+
+        const summary = "${summary}";
+        const summaryDiv = document.getElementById("summary")
+        summaryDiv.innerHTML += "<ul>"
+        Object.keys(summary).forEach((key) => summaryDiv.innerHTML += `<li>${key} = ${summary[key]}</li>`);
+        summaryDiv.innerHTML += "</ul>"
     </script>
 </body>
 

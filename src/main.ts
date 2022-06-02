@@ -1,4 +1,4 @@
-import { generateSensorValues, randomDate, pickRandomSource } from "./generate";
+import { generateSensorValues, randomDate, pickRandomSource, CONST, sourceCount } from "./generate";
 import { resetDB, SensorDBStore, SensorValueDBStore } from "./dbStore";
 import { PrismaClient } from "@prisma/client";
 import { Chrono } from "./chrono";
@@ -22,10 +22,8 @@ export type Analytics = Serie[];
 async function main(): Promise<void> {
   await resetDB();
 
-  const nSnapshots = [100, 200, 500, 1000, 2000, 5000, 10000];
+  const nSnapshots = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
   //const nSnapshots = [100, 200];
-  const nSnapshotData: number[][] = [];
-  const newSvData: number[][] = [];
   const insertChronoData: number[][] = [];
   const searchChronoData: number[][] = [];
   let totalSv = 0;
@@ -39,27 +37,22 @@ async function main(): Promise<void> {
     const searchChrono = chrono.elapsedLogAndGet() / N_MULTI_SEARCH;
     totalSv += newSv;
 
-    nSnapshotData.push([totalSv, nSnapshot]);
-    newSvData.push([totalSv, newSv]);
-    insertChronoData.push([totalSv, insertChrono]);
+    insertChronoData.push([totalSv, insertChrono / newSv]);
     searchChronoData.push([totalSv, searchChrono]);
   }
   const xAxis = "Total number of SV in the DB";
-  const nSnapshotSerie = {
-    title: "Number of Snapshot generated in this iteration",
-    yAxis: "count",
-    xAxis,
-    data: nSnapshotData,
+
+  const summary = {
+    ...CONST,
+    snapshotsPerIteration: JSON.stringify(nSnapshots),
+    generatedSensorValues: totalSv,
+    generatedSnapshots: nSnapshots.reduce((acc, n) => acc + n, 0),
+    generatedSources: sourceCount,
   };
-  const newSvSerie = {
-    title: "Number of SensorValue generated in this iteration",
-    yAxis: "count",
-    xAxis,
-    data: newSvData,
-  };
+
   const insertChronoSerie = {
-    title: "Time for inserting the generated data",
-    yAxis: "chrono (milliseconds)",
+    title: "Batch insert duration per SensorValue",
+    yAxis: "chrono per SV (milliseconds)",
     xAxis,
     data: insertChronoData,
   };
@@ -71,8 +64,7 @@ async function main(): Promise<void> {
   };
 
   copyAndReplace("src/index.template.html", "dist/index.html", [
-    { token: '"${nSnapshotSerie}"', replacement: JSON.stringify(nSnapshotSerie) },
-    { token: '"${newSvSerie}"', replacement: JSON.stringify(newSvSerie) },
+    { token: '"${summary}"', replacement: JSON.stringify(summary, undefined, 2) },
     { token: '"${insertChronoSerie}"', replacement: JSON.stringify(insertChronoSerie) },
     { token: '"${searchChronoSerie}"', replacement: JSON.stringify(searchChronoSerie) },
   ]);
