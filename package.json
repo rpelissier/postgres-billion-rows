@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node src/index.ts",
+    "start": "ts-node src/main.ts",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "prisma:generate": "yarn prisma generate --schema ./src/schema.prisma",
@@ -19,6 +19,8 @@
     "@faker-js/faker": "^7.0.1",
     "@prisma/client": "^3.14.0",
     "eslint": "^8.16.0",
+    "highcharts": "^10.1.0",
+    "highcharts-react": "^0.0.3",
     "prettier": "^2.6.2",
     "prisma": "^3.14.0",
     "ts-node": "^10.8.0",

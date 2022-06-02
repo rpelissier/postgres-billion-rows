@@ -8,8 +8,9 @@ export class Chrono {
     console.log(`[${this.label}] starting.`);
   }
 
-  log() {
-    const elapsed = new Date().getTime() - this.startTime.getTime();
-    console.log(`[${this.label}] elapsed=${elapsed}ms`);
+  elapsedLogAndGet() {
+    const elapsedMs = new Date().getTime() - this.startTime.getTime();
+    console.log(`[${this.label}] elapsed=${elapsedMs}ms`);
+    return elapsedMs;
   }
 }

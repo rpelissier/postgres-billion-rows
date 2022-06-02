@@ -1,0 +1,60 @@
+<html>
+
+<body>
+    <div id="nSnapshotSerie" style="width:100%; height:400px;"></div>
+    <div id="newSvSerie" style="width:100%; height:400px;"></div>
+    <div id="insertChronoSerie" style="width:100%; height:400px;"></div>
+    <div id="searchChronoSerie" style="width:100%; height:400px;"></div>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script>
+        function createOptions(serie) {
+            return {
+
+                title: {
+                    text: serie.title
+                },
+                xAxis: {
+                    title: {
+                        text: serie.xAxis
+                    }
+                },
+                yAxis: {
+                    title: {
+                        text: serie.yAxis
+                    }
+                },
+                plotOptions: {
+                    scatter: {
+                        label: {
+                            connectorAllowed: false
+                        },
+                    }
+                },
+                series: [{ "name": serie.title, "data": serie.data }],
+                responsive: {
+                    rules: [{
+                        condition: {
+                            maxWidth: 500
+                        },
+                        chartOptions: {
+                            legend: {
+                                layout: 'horizontal',
+                                align: 'center',
+                                verticalAlign: 'bottom'
+                            }
+                        }
+                    }]
+                }
+            };
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            Highcharts.chart('nSnapshotSerie', createOptions("${nSnapshotSerie}"));
+            Highcharts.chart('newSvSerie', createOptions("${newSvSerie}"));
+            Highcharts.chart('insertChronoSerie', createOptions("${insertChronoSerie}"));
+            Highcharts.chart('searchChronoSerie', createOptions("${searchChronoSerie}"));
+
+        });
+    </script>
+</body>
+
+</html>

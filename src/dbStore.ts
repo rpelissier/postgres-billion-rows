@@ -1,19 +1,14 @@
 import { Sensor, SensorValue } from "@prisma/client";
 import { PrismaClient } from "@prisma/client";
-import { BatchStore } from "./generate";
 
 const prisma = new PrismaClient();
 
-abstract class DBStore<T> implements BatchStore<T> {
+export abstract class DBStore<T> {
   buffer: T[] = [];
-
-  begin(): void {
-    return;
-  }
 
   abstract insertMany(t: T[]): Promise<void>;
 
-  next(t: T): void {
+  save(t: T): void {
     this.buffer.push(t);
   }
 
